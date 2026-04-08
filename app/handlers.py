@@ -15,6 +15,7 @@ router.include_router(game_router)
 
 class GameStates(StatesGroup):
     waiting_for_code = State()
+    waiting_for_budget = State()
 
 
 @router.message(CommandStart())
@@ -29,20 +30,51 @@ async def cmd_start(message: Message, state: FSMContext):
 async def create_game(message: Message, state: FSMContext):
     await state.clear()
     code = str(random.randint(10000, 99999))
-    games[code] = {
+
+    await state.update_data(game_code=code)
+    await state.set_state(GameStates.waiting_for_budget)
+
+    await message.answer(
+        text=f"🎄 Создание игры\n\n"
+             f"Код игры: {code}\n\n"
+             f"Установите бюджет подарка (в рублях):\n"
+             f"Например: 1000-2000, до 1500, от 500, 1000\n\n"
+             f"Или напишите 'пропустить', если хотите без ограничения бюджета",
+        reply_markup=kb.budget_menu
+    )
+
+
+@router.message(GameStates.waiting_for_budget)
+async def set_budget(message: Message, state: FSMContext):
+    budget_text = message.text.strip()
+    data = await state.get_data()
+    game_code = data.get('game_code')
+
+    if budget_text.lower() == "пропустить":
+        budget = "Не указан"
+    else:
+        budget = budget_text
+
+    games[game_code] = {
         "players": [message.from_user.id],
         "draw": {},
         "status": "waiting",
-        "creator": message.from_user.id
+        "creator": message.from_user.id,
+        "budget": budget
     }
-    user_game[message.from_user.id] = code
+    user_game[message.from_user.id] = game_code
+
+    await state.clear()
+
     await message.answer(
-        text=f"Игра успешно создана!\n\n"
-             f"Вы стали организатором игры.\n"
-             f"Код игры: {code}\n\n"
+        text=f"✅ Игра успешно создана!\n\n"
+             f"👑 Вы стали организатором игры.\n"
+             f"🎮 Код игры: {game_code}\n"
+             f"💰 Бюджет подарка: {budget}\n\n"
              f"Отправьте этот код другим участникам,\n"
              f"чтобы они могли присоединиться к игре",
-        reply_markup=kb.game_menu)
+        reply_markup=kb.game_menu
+    )
 
 
 @router.message(F.text == "Правила игры")

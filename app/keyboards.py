@@ -3,7 +3,7 @@ from aiogram.types import (ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMa
 main = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text='Создать игру'), KeyboardButton(text='Принять участие')],
-        [KeyboardButton(text='Информация об игре'), KeyboardButton(text='Мои игры')]
+        [KeyboardButton(text='Правила игры  '), KeyboardButton(text='Мои игры')]
     ],
     resize_keyboard=True,
     input_field_placeholder='Выберите пункт'
@@ -57,19 +57,54 @@ anonymous_chat_menu = ReplyKeyboardMarkup(
 
 
 def get_games_list_keyboard(user_games, user_id):
+    """Создает клавиатуру со списком игр и статусами"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
 
     for code, game_data in user_games:
         players_count = len(game_data['players'])
         is_organizer = game_data.get('creator') == user_id
-        draw_status = "✅" if game_data.get('draw') else "⏳"
+        has_draw = game_data.get('draw')
 
+        # Статус жеребьёвки
+        if has_draw:
+            draw_status = "✅"  # Проведена
+        else:
+            draw_status = "⏳"  # Ожидание
+
+        # Формируем текст кнопки
         button_text = f"{draw_status} Игра {code} | {players_count} чел"
+
+        # Добавляем корону для организатора
         if is_organizer:
             button_text += " 👑"
+
+        # Если жеребьёвка проведена и пользователь не организатор, добавляем 🎁
+        if has_draw and not is_organizer:
+            button_text += " 🎁"
 
         keyboard.inline_keyboard.append([
             InlineKeyboardButton(text=button_text, callback_data=f"enter_game_{code}")
         ])
 
     return keyboard
+
+    return keyboard
+
+# keyboards.py - добавить в конец файла
+
+def get_confirm_delete_keyboard():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Да, удалить", callback_data="confirm_delete"),
+            InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_delete")
+        ]
+    ])
+    return keyboard
+
+budget_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text='пропустить')]
+    ],
+    resize_keyboard=True,
+    input_field_placeholder='Введите бюджет или нажмите "пропустить"'
+)

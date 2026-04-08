@@ -10,6 +10,7 @@ user_game = {}
 wishlists = {}
 anonymous_messages = {}
 active_game_session = {}
+user_name_cache = {}
 
 game_router = Router()
 
@@ -22,58 +23,42 @@ class AnonymousChatStates(StatesGroup):
     waiting_for_message = State()
 
 
-@game_router.message(F.text == "Информация об игре")
-async def info_menu(message: Message, state: FSMContext):
-    """Показывает меню с действиями для игры"""
+async def get_user_name(user_id, bot):
+    if user_id in user_name_cache:
+        return user_name_cache[user_id]
+
+    try:
+        user = await bot.get_chat(user_id)
+        if user.first_name:
+            if user.last_name:
+                name = f"{user.first_name} {user.last_name}"
+            else:
+                name = user.first_name
+        else:
+            name = f"User_{user_id}"
+
+        user_name_cache[user_id] = name
+        return name
+    except:
+        return f"User_{user_id}"
+
+
+@game_router.message(F.text == "Главное меню")
+async def back_to_main_menu_from_game(message: Message, state: FSMContext):
     await state.clear()
     user_id = message.from_user.id
-
-    if user_id not in user_game:
-        await message.answer(
-            text="❌ Вы не участвуете ни в одной игре!",
-            reply_markup=kb.main
-        )
-        return
-
-    game_code = user_game[user_id]
-    game_data = games.get(game_code)
-
-    if not game_data:
-        await message.answer("❌ Игра не найдена.")
-        return
-
-    is_organizer = game_data.get('creator') == user_id
-    has_draw = bool(game_data.get('draw'))
-
-    info_text = f"📊 ИНФОРМАЦИЯ ОБ ИГРЕ 📊\n\n"
-    info_text += f"🎮 Код игры: {game_code}\n"
-    info_text += f"👥 Участников: {len(game_data['players'])}\n"
-    info_text += f"👑 Ваша роль: {'Организатор' if is_organizer else 'Участник'}\n"
-
-    if has_draw:
-        info_text += f"🎲 Жеребьёвка: ✅ Проведена\n"
-        recipient_id = game_data['draw'].get(user_id)
-        if recipient_id:
-            info_text += f"🎁 Ваш получатель: ID: {recipient_id}\n"
-    else:
-        info_text += f"🎲 Жеребьёвка: ⏳ Не проведена\n"
-        if is_organizer:
-            info_text += f"⚠️ Нужно участников: {max(0, 3 - len(game_data['players']))}\n"
-
-    info_text += f"\n📋 Список участников:\n"
-    for i, player_id in enumerate(game_data['players'], 1):
-        role_mark = "👑 " if player_id == game_data.get('creator') else "👤 "
-        info_text += f"   {role_mark}ID: {player_id}\n"
-
+    if user_id in active_game_session:
+        del active_game_session[user_id]
     await message.answer(
-        text=info_text,
-        reply_markup=kb.info_menu
+        text='Вы вернулись в главное меню',
+        reply_markup=kb.main
     )
 
 
 @game_router.message(F.text == "Мои игры")
 async def my_games(message: Message):
     user_id = message.from_user.id
+    from main import bot
 
     user_games = []
     for code, game_data in games.items():
@@ -102,7 +87,7 @@ async def my_games(message: Message):
     )
 
     await message.answer(
-        text="🏠 Для возврата в меню нажмите кнопку ниже:",
+        text="🏠 Для возврата в главное меню нажмите кнопку ниже:",
         reply_markup=kb.games_list_menu
     )
 
@@ -111,6 +96,7 @@ async def my_games(message: Message):
 async def enter_game(callback_query: CallbackQuery):
     game_code = callback_query.data.replace("enter_game_", "")
     user_id = callback_query.from_user.id
+    from main import bot
 
     if game_code not in games:
         await callback_query.answer("❌ Игра не найдена!", show_alert=True)
@@ -128,15 +114,19 @@ async def enter_game(callback_query: CallbackQuery):
     is_organizer = game_data.get('creator') == user_id
     has_draw = bool(game_data.get('draw'))
 
+    creator_name = await get_user_name(game_data.get('creator'), bot)
+
     game_menu_text = f"🎄 ИГРА {game_code} 🎄\n\n"
     game_menu_text += f"👥 Участников: {len(game_data['players'])}\n"
+    game_menu_text += f"👑 Организатор: {creator_name}\n"
     game_menu_text += f"👑 Ваша роль: {'Организатор' if is_organizer else 'Участник'}\n"
 
     if has_draw:
         game_menu_text += f"🎲 Жеребьёвка: ✅ Проведена\n"
         recipient_id = game_data['draw'].get(user_id)
         if recipient_id:
-            game_menu_text += f"🎁 Ваш получатель: ID: {recipient_id}\n"
+            recipient_name = await get_user_name(recipient_id, bot)
+            game_menu_text += f"🎁 Ваш получатель: {recipient_name}\n"
     else:
         game_menu_text += f"🎲 Жеребьёвка: ⏳ Не проведена\n"
         if is_organizer:
@@ -150,6 +140,61 @@ async def enter_game(callback_query: CallbackQuery):
     )
     await callback_query.answer(f"Вы вошли в игру {game_code}")
 
+
+@game_router.message(F.text == "Информация об игре")
+async def game_info(message: types.Message, state: FSMContext):
+    await state.clear()
+    user_id = message.from_user.id
+    from main import bot
+
+    if user_id not in user_game:
+        await message.answer(
+            text="❌ Вы не участвуете ни в одной игре!",
+            reply_markup=kb.main
+        )
+        return
+
+    game_code = user_game[user_id]
+    game_data = games.get(game_code)
+
+    if not game_data:
+        await message.answer("❌ Игра не найдена.")
+        return
+
+    players_count = len(game_data['players'])
+    is_organizer = game_data.get('creator') == user_id
+    has_draw = bool(game_data.get('draw'))
+    budget = game_data.get('budget', "Не указан")  # ПОЛУЧАЕМ БЮДЖЕТ
+
+    creator_name = await get_user_name(game_data.get('creator'), bot)
+
+    info_text = f"📊 ИНФОРМАЦИЯ ОБ ИГРЕ 📊\n\n"
+    info_text += f"🎮 Код игры: {game_code}\n"
+    info_text += f"👥 Участников: {players_count}\n"
+    info_text += f"💰 Бюджет подарка: {budget}\n"  # НОВАЯ СТРОКА
+    info_text += f"👑 Организатор: {creator_name}\n"
+    info_text += f"👑 Ваша роль: {'Организатор' if is_organizer else 'Участник'}\n"
+
+    if players_count >= 3:
+        info_text += f"✅ Можно проводить жеребьёвку!\n"
+    else:
+        info_text += f"⚠️ Нужно еще {3 - players_count} участник(а) для жеребьёвки\n"
+
+    if has_draw:
+        info_text += f"🎲 Жеребьёвка: ✅ Проведена\n"
+    else:
+        info_text += f"🎲 Жеребьёвка: ⏳ Не проведена\n"
+
+    info_text += f"\n📋 Список участников:\n"
+    for i, player_id in enumerate(game_data['players'], 1):
+        player_name = await get_user_name(player_id, bot)
+        role_mark = "👑 " if player_id == game_data.get('creator') else "👤 "
+        info_text += f"   {role_mark}{i}. {player_name}\n"
+
+    await message.answer(
+        text=info_text,
+        reply_markup=kb.info_menu
+    )
 
 @game_router.message(F.text == "Провести жеребьёвку")
 async def conduct_draw_from_button(message: Message, state: FSMContext):
@@ -204,10 +249,11 @@ async def conduct_draw_from_button(message: Message, state: FSMContext):
     from main import bot
     for giver_id, receiver_id in draw_results.items():
         try:
+            receiver_name = await get_user_name(receiver_id, bot)
             receiver_wishlist = wishlists.get(receiver_id, "Не заполнен")
 
             message_text = f"🎁 ЖЕРЕБЬЁВКА ЗАВЕРШЕНА! 🎁\n\n"
-            message_text += f"Вам выпало подарить подарок участнику с ID: {receiver_id}\n\n"
+            message_text += f"Вам выпало подарить подарок: {receiver_name}\n\n"
 
             if receiver_wishlist:
                 message_text += f"📝 Что хочет получить ваш получатель:\n{receiver_wishlist}\n\n"
@@ -259,11 +305,13 @@ async def my_wishlist(message: Message, state: FSMContext):
     else:
         recipient_id = game_data['draw'].get(user_id)
         if recipient_id:
+            from main import bot
+            recipient_name = await get_user_name(recipient_id, bot)
             recipient_wishlist = wishlists.get(recipient_id, "Не заполнен")
 
             await message.answer(
                 text=f"🎁 Вишлист вашего получателя\n\n"
-                     f"ID: {recipient_id}\n\n"
+                     f"👤 {recipient_name}\n\n"
                      f"📝 Желаемые подарки:\n{recipient_wishlist}\n\n"
                      f"Вы также можете изменить свой вишлист:",
                 reply_markup=kb.wishlist_menu
@@ -309,6 +357,7 @@ async def save_wishlist(message: Message, state: FSMContext):
 @game_router.message(F.text == "Узнать кому дарить")
 async def know_recipient(message: Message):
     user_id = message.from_user.id
+    from main import bot
 
     if user_id not in user_game:
         await message.answer(
@@ -334,13 +383,16 @@ async def know_recipient(message: Message):
         return
 
     recipient_id = game_data['draw'].get(user_id)
+    budget = game_data.get('budget', "Не указан")
 
     if recipient_id:
+        recipient_name = await get_user_name(recipient_id, bot)
         recipient_wishlist = wishlists.get(recipient_id, "Не заполнен")
 
         await message.answer(
-            text=f"🎁 Ваш получатель:\n\n"
-                 f"🆔 ID: {recipient_id}\n\n"
+            text=f"🎁 Ваш подопечный:\n\n"
+                 f"👤 {recipient_name}\n\n"
+                 f"💰 Бюджет подарка: {budget}\n\n"
                  f"📝 Что хочет получить:\n"
                  f"{recipient_wishlist}\n\n"
                  f"🤫 Не раскрывайте свой секрет до вручения подарка!\n"
@@ -350,10 +402,10 @@ async def know_recipient(message: Message):
     else:
         await message.answer("❌ Ошибка: не удалось определить получателя подарка!")
 
-
 @game_router.message(F.text == "Анонимный чат")
 async def anonymous_chat(message: Message, state: FSMContext):
     user_id = message.from_user.id
+    from main import bot
 
     if user_id not in user_game:
         await message.answer(
@@ -383,11 +435,14 @@ async def anonymous_chat(message: Message, state: FSMContext):
         await message.answer("❌ Ошибка: не удалось определить получателя!")
         return
 
+    recipient_name = await get_user_name(recipient_id, bot)
+
     await state.update_data(game_code=game_code, recipient_id=recipient_id)
 
     await message.answer(
         text=f"💬 Анонимный чат\n\n"
-             f"Вы можете анонимно общаться с вашим получателем (ID: {recipient_id}).\n\n"
+             f"Вы можете анонимно общаться с вашим получателем:\n"
+             f"👤 {recipient_name}\n\n"
              f"Ваш собеседник не узнает, кто отправил сообщение.\n"
              f"Все сообщения придут ему анонимно.",
         reply_markup=kb.anonymous_chat_menu
@@ -409,7 +464,7 @@ async def send_anonymous_message(message: Message, state: FSMContext):
 
     await message.answer(
         text=f"💬 Напишите ваше анонимное сообщение\n\n"
-             f"Сообщение будет отправлено вашему подопечному (ID: {recipient_id}).\n"
+             f"Сообщение будет отправлено вашему получателю.\n"
              f"Он не узнает, кто отправитель.\n\n"
              f"Напишите текст сообщения:"
     )
@@ -510,6 +565,7 @@ async def view_messages(message: Message, state: FSMContext):
 async def back_to_game_menu(message: Message, state: FSMContext):
     await state.clear()
     user_id = message.from_user.id
+    from main import bot
 
     if user_id not in user_game:
         await message.answer(
@@ -531,8 +587,11 @@ async def back_to_game_menu(message: Message, state: FSMContext):
     is_organizer = game_data.get('creator') == user_id
     has_draw = bool(game_data.get('draw'))
 
+    creator_name = await get_user_name(game_data.get('creator'), bot)
+
     game_menu_text = f"🎄 ИГРА {game_code} 🎄\n\n"
     game_menu_text += f"👥 Участников: {len(game_data['players'])}\n"
+    game_menu_text += f"👑 Организатор: {creator_name}\n"
     game_menu_text += f"👑 Ваша роль: {'Организатор' if is_organizer else 'Участник'}\n"
 
     if has_draw:
@@ -547,7 +606,8 @@ async def back_to_game_menu(message: Message, state: FSMContext):
 
 
 @game_router.message(F.text == "Удалить игру")
-async def delete_game(message: Message):
+async def delete_game_confirm(message: Message):
+
     user_id = message.from_user.id
 
     if user_id not in user_game:
@@ -565,14 +625,67 @@ async def delete_game(message: Message):
         await message.answer("❌ Только организатор может удалить игру!")
         return
 
+    players_count = len(game_data['players'])
+    keyboard = kb.get_confirm_delete_keyboard()
+
+    await message.answer(
+        text=f"⚠️ ВНИМАНИЕ! ⚠️\n\n"
+             f"Вы собираетесь удалить игру {game_code}.\n"
+             f"В игре участвует {players_count} человек(а).\n\n"
+             f"Все данные будут потеряны безвозвратно!\n\n"
+             f"Вы уверены?",
+        reply_markup=keyboard
+    )
+
+
+@game_router.callback_query(lambda c: c.data == "confirm_delete")
+async def confirm_delete_game(callback: CallbackQuery):
+    user_id = callback.from_user.id
+
+    if user_id not in user_game:
+        await callback.answer("❌ Вы не участвуете ни в одной игре!", show_alert=True)
+        return
+
+    game_code = user_game[user_id]
+    game_data = games.get(game_code)
+
+    if not game_data:
+        await callback.answer("❌ Игра не найдена!", show_alert=True)
+        return
+
+    if game_data.get('creator') != user_id:
+        await callback.answer("❌ Только организатор может удалить игру!", show_alert=True)
+        return
+
+    players_count = len(game_data['players'])
+
+    # Удаляем игру
     for player_id in game_data['players']:
         if player_id in user_game:
             del user_game[player_id]
 
     del games[game_code]
 
-    await message.answer(
-        "🗑️ Игра успешно удалена!\n\n"
-        "Вы можете создать новую игру в главном меню.",
+    # Редактируем сообщение с подтверждением
+    await callback.message.edit_text(
+        text=f"🗑️ Игра {game_code} успешно удалена!\n\n"
+             f"Было удалено {players_count} участник(ов).\n\n"
+             f"Вы можете создать новую игру в главном меню."
+    )
+
+    # Отправляем новое сообщение с главным меню
+    await callback.message.answer(
+        text="Вы вернулись в главное меню",
         reply_markup=kb.main
     )
+
+    await callback.answer()
+
+
+@game_router.callback_query(lambda c: c.data == "cancel_delete")
+async def cancel_delete_game(callback: CallbackQuery):
+    await callback.message.edit_text(
+        text="❌ Удаление игры отменено.\n\n"
+             "Игра сохранена."
+    )
+    await callback.answer()
