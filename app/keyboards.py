@@ -57,7 +57,6 @@ anonymous_chat_menu = ReplyKeyboardMarkup(
 
 
 def get_games_list_keyboard(user_games, user_id):
-    """Создает клавиатуру со списком игр и статусами"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
 
     for code, game_data in user_games:
@@ -65,20 +64,17 @@ def get_games_list_keyboard(user_games, user_id):
         is_organizer = game_data.get('creator') == user_id
         has_draw = game_data.get('draw')
 
-        # Статус жеребьёвки
-        if has_draw:
-            draw_status = "✅"  # Проведена
-        else:
-            draw_status = "⏳"  # Ожидание
 
-        # Формируем текст кнопки
+        if has_draw:
+            draw_status = "✅"
+        else:
+            draw_status = "⏳"
+
         button_text = f"{draw_status} Игра {code} | {players_count} чел"
 
-        # Добавляем корону для организатора
         if is_organizer:
             button_text += " 👑"
 
-        # Если жеребьёвка проведена и пользователь не организатор, добавляем 🎁
         if has_draw and not is_organizer:
             button_text += " 🎁"
 
@@ -87,10 +83,6 @@ def get_games_list_keyboard(user_games, user_id):
         ])
 
     return keyboard
-
-    return keyboard
-
-# keyboards.py - добавить в конец файла
 
 def get_confirm_delete_keyboard():
     keyboard = InlineKeyboardMarkup(inline_keyboard=[

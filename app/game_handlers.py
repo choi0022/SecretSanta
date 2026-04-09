@@ -164,14 +164,14 @@ async def game_info(message: types.Message, state: FSMContext):
     players_count = len(game_data['players'])
     is_organizer = game_data.get('creator') == user_id
     has_draw = bool(game_data.get('draw'))
-    budget = game_data.get('budget', "Не указан")  # ПОЛУЧАЕМ БЮДЖЕТ
+    budget = game_data.get('budget', "Не указан")
 
     creator_name = await get_user_name(game_data.get('creator'), bot)
 
     info_text = f"📊 ИНФОРМАЦИЯ ОБ ИГРЕ 📊\n\n"
     info_text += f"🎮 Код игры: {game_code}\n"
     info_text += f"👥 Участников: {players_count}\n"
-    info_text += f"💰 Бюджет подарка: {budget}\n"  # НОВАЯ СТРОКА
+    info_text += f"💰 Бюджет подарка: {budget}\n"
     info_text += f"👑 Организатор: {creator_name}\n"
     info_text += f"👑 Ваша роль: {'Организатор' if is_organizer else 'Участник'}\n"
 
@@ -390,7 +390,7 @@ async def know_recipient(message: Message):
         recipient_wishlist = wishlists.get(recipient_id, "Не заполнен")
 
         await message.answer(
-            text=f"🎁 Ваш подопечный:\n\n"
+            text=f"🎁 Ваш получатель:\n\n"
                  f"👤 {recipient_name}\n\n"
                  f"💰 Бюджет подарка: {budget}\n\n"
                  f"📝 Что хочет получить:\n"
