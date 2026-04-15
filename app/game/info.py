@@ -2,14 +2,13 @@ from aiogram import types, F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import app.keyboards as kb
-from .game_core import games, user_game, active_game_session, get_user_name
+from .core import games, user_game, active_game_session, get_user_name
 
 
 def register_info_handlers(router: Router):
     @router.message(F.text == "Мои игры")
     async def my_games(message: Message):
         user_id = message.from_user.id
-        from main import bot
 
         user_games = []
         for code, game_data in games.items():
@@ -78,7 +77,7 @@ def register_info_handlers(router: Router):
             recipient_id = game_data['draw'].get(user_id)
             if recipient_id:
                 recipient_name = await get_user_name(recipient_id, bot)
-                game_menu_text += f"🎁 Ваш подопечный: {recipient_name}\n"
+                game_menu_text += f"🎁 Ваш получатель: {recipient_name}\n"
         else:
             game_menu_text += f"🎲 Жеребьёвка: ⏳ Не проведена\n"
             if is_organizer:

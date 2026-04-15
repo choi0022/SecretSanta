@@ -3,7 +3,7 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import app.keyboards as kb
-from .game_core import games, user_game, anonymous_messages, get_user_name
+from .core import games, user_game, anonymous_messages, get_user_name
 
 
 class AnonymousChatStates(StatesGroup):
@@ -72,7 +72,7 @@ def register_chat_handlers(router: Router):
 
         await message.answer(
             text=f"💬 Напишите ваше анонимное сообщение\n\n"
-                 f"Сообщение будет отправлено вашему подопечному.\n"
+                 f"Сообщение будет отправлено вашему получателю.\n"
                  f"Он не узнает, кто отправитель.\n\n"
                  f"Напишите текст сообщения:"
         )

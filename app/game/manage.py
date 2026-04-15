@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import app.keyboards as kb
-from .game_core import games, user_game, get_user_name
+from .core import games, user_game, get_user_name
 
 
 def register_manage_handlers(router: Router):

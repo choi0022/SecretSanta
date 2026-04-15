@@ -6,7 +6,7 @@ from aiogram.types import Message
 import random
 
 import app.keyboards as kb
-from app.game.game_handlers import game_router, games, user_game
+from app.game.gamehandlers import game_router, games, user_game
 
 router = Router()
 

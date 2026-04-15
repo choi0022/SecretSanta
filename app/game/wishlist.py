@@ -3,7 +3,7 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import app.keyboards as kb
-from .game_core import games, user_game, wishlists, get_user_name
+from .core import games, user_game, wishlists, get_user_name
 
 
 class WishlistStates(StatesGroup):
@@ -47,7 +47,7 @@ def register_wishlist_handlers(router: Router):
                 recipient_wishlist = wishlists.get(recipient_id, "Не заполнен")
 
                 await message.answer(
-                    text=f"🎁 Вишлист вашего подопечного\n\n"
+                    text=f"🎁 Вишлист вашего получателя\n\n"
                          f"👤 {recipient_name}\n\n"
                          f"📝 Желаемые подарки:\n{recipient_wishlist}\n\n"
                          f"Вы также можете изменить свой вишлист:",
@@ -125,7 +125,7 @@ def register_wishlist_handlers(router: Router):
             recipient_wishlist = wishlists.get(recipient_id, "Не заполнен")
 
             await message.answer(
-                text=f"🎁 Ваш подопечный:\n\n"
+                text=f"🎁 Ваш получатель:\n\n"
                      f"👤 {recipient_name}\n\n"
                      f"💰 Бюджет подарка: {budget}\n\n"
                      f"📝 Что хочет получить:\n"

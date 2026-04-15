@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import random
 import app.keyboards as kb
-from .game_core import games, user_game, wishlists, active_game_session, get_user_name
+from .core import games, user_game, wishlists, active_game_session, get_user_name
 
 
 def register_draw_handlers(router: Router):
@@ -69,7 +69,7 @@ def register_draw_handlers(router: Router):
                 message_text += f"💰 Бюджет: {budget}\n\n"
 
                 if receiver_wishlist:
-                    message_text += f"📝 Что хочет получить ваш подопечный:\n{receiver_wishlist}\n\n"
+                    message_text += f"📝 Что хочет получить ваш получатель:\n{receiver_wishlist}\n\n"
 
                 message_text += f"🤫 Не раскрывайте свой секрет!\n"
                 message_text += f"🎄 Счастливого дарения!"
