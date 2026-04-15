@@ -6,7 +6,7 @@ from aiogram.types import Message
 import random
 
 import app.keyboards as kb
-from app.game_handlers import games, user_game, game_router
+from app.game.game_handlers import game_router, games, user_game
 
 router = Router()
 
@@ -39,7 +39,7 @@ async def create_game(message: Message, state: FSMContext):
              f"Код игры: {code}\n\n"
              f"Установите бюджет подарка (в рублях):\n"
              f"Например: 1000-2000, до 1500, от 500, 1000\n\n"
-             f"Или напишите 'пропустить', если хотите без ограничения бюджета",
+             f"Или напишите 'пропустить', если хотите без ограничений",
         reply_markup=kb.budget_menu
     )
 

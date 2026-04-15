@@ -55,7 +55,6 @@ anonymous_chat_menu = ReplyKeyboardMarkup(
     input_field_placeholder='Выберите действие'
 )
 
-
 def get_games_list_keyboard(user_games, user_id):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
 
