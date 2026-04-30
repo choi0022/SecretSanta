@@ -1,18 +1,18 @@
 from aiogram import Router
-from .core import games, user_game, wishlists, anonymous_messages, active_game_session, user_name_cache, get_user_name
-from .info import register_info_handlers
-from .draw import register_draw_handlers
-from .wishlist import register_wishlist_handlers
-from .chat import register_chat_handlers
-from .manage import register_manage_handlers
+from .core import games, user_game, wishlists, anonymous_messages, active_game_session, user_name_cache, get_user_name, load_all_data
+from .info import info
+from .draw import draw
+from .wishlist import wishlist
+from .chat import chat
+from .manage import manage
 
 game_router = Router()
 
-register_info_handlers(game_router)
-register_draw_handlers(game_router)
-register_wishlist_handlers(game_router)
-register_chat_handlers(game_router)
-register_manage_handlers(game_router)
+info(game_router)
+draw(game_router)
+wishlist(game_router)
+chat(game_router)
+manage(game_router)
 
 __all__ = [
     'game_router',
@@ -22,5 +22,6 @@ __all__ = [
     'anonymous_messages',
     'active_game_session',
     'user_name_cache',
-    'get_user_name'
+    'get_user_name',
+    'load_all_data'
 ]

@@ -4,13 +4,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import app.keyboards as kb
 from .core import games, user_game, anonymous_messages, get_user_name
-
+import database as db
 
 class AnonymousChatStates(StatesGroup):
     waiting_for_message = State()
 
 
-def register_chat_handlers(router: Router):
+def chat(router: Router):
     @router.message(F.text == "Анонимный чат")
     async def anonymous_chat(message: Message, state: FSMContext):
         user_id = message.from_user.id
@@ -58,7 +58,7 @@ def register_chat_handlers(router: Router):
         )
 
     @router.message(F.text == "Написать сообщение")
-    async def send_anonymous_message(message: Message, state: FSMContext):
+    async def send_message(message: Message, state: FSMContext):
         data = await state.get_data()
         game_code = data.get('game_code')
         recipient_id = data.get('recipient_id')
@@ -78,7 +78,7 @@ def register_chat_handlers(router: Router):
         )
 
     @router.message(AnonymousChatStates.waiting_for_message)
-    async def save_anonymous_message(message: Message, state: FSMContext):
+    async def save_message(message: Message, state: FSMContext):
         if message.text == "Назад":
             await state.clear()
             await message.answer(
@@ -110,6 +110,8 @@ def register_chat_handlers(router: Router):
             'timestamp': message.date
         }
         anonymous_messages[game_code][recipient_id].append(message_data)
+
+        db.save_anonymous_message(game_code, user_id, recipient_id, message_text)
 
         try:
             from main import bot
@@ -143,7 +145,7 @@ def register_chat_handlers(router: Router):
             await message.answer("❌ Ошибка! Игра не найдена.")
             return
 
-        messages_list = []
+        messages_list = db.get_anonymous_messages(game_code, user_id)
         if game_code in anonymous_messages and user_id in anonymous_messages[game_code]:
             messages_list = anonymous_messages[game_code][user_id]
 

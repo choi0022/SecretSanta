@@ -4,13 +4,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import app.keyboards as kb
 from .core import games, user_game, wishlists, get_user_name
-
+import database as db
 
 class WishlistStates(StatesGroup):
     waiting_for_wishlist = State()
 
 
-def register_wishlist_handlers(router: Router):
+def wishlist(router: Router):
     @router.message(F.text == "Мой вишлист")
     async def my_wishlist(message: Message, state: FSMContext):
         user_id = message.from_user.id
@@ -79,6 +79,7 @@ def register_wishlist_handlers(router: Router):
         wishlist_text = message.text.strip()
 
         wishlists[user_id] = wishlist_text
+        db.update_wishlist(user_id, wishlist_text)
 
         await message.answer(
             text=f"✅ Ваш вишлист успешно сохранён!\n\n"

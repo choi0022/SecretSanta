@@ -3,9 +3,9 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import app.keyboards as kb
 from .core import games, user_game, active_game_session, get_user_name
+import database as db
 
-
-def register_info_handlers(router: Router):
+def info(router: Router):
     @router.message(F.text == "Мои игры")
     async def my_games(message: Message):
         user_id = message.from_user.id
@@ -59,12 +59,15 @@ def register_info_handlers(router: Router):
 
         active_game_session[user_id] = game_code
         user_game[user_id] = game_code
+        db.set_active_game(user_id, game_code)
 
-        is_organizer = game_data.get('creator') == user_id
+        creator_id = game_data.get('creator')
+        is_organizer = (creator_id == user_id)
+
         has_draw = bool(game_data.get('draw'))
         budget = game_data.get('budget', "Не указан")
 
-        creator_name = await get_user_name(game_data.get('creator'), bot)
+        creator_name = await get_user_name(creator_id, bot) if creator_id else "Неизвестный"
 
         game_menu_text = f"🎄 ИГРА {game_code} 🎄\n\n"
         game_menu_text += f"👥 Участников: {len(game_data['players'])}\n"
@@ -82,6 +85,11 @@ def register_info_handlers(router: Router):
             game_menu_text += f"🎲 Жеребьёвка: ⏳ Не проведена\n"
             if is_organizer:
                 game_menu_text += f"⚠️ Нужно участников: {max(0, 3 - len(game_data['players']))}\n"
+
+        if is_organizer:
+            reply_markup = kb.info_menu
+        else:
+            reply_markup = kb.info_menu
 
         await callback_query.message.delete()
 

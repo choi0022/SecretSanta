@@ -4,11 +4,11 @@ from aiogram.fsm.context import FSMContext
 import random
 import app.keyboards as kb
 from .core import games, user_game, wishlists, active_game_session, get_user_name
+import database as db
 
-
-def register_draw_handlers(router: Router):
+def draw(router: Router):
     @router.message(F.text == "Провести жеребьёвку")
-    async def conduct_draw_from_button(message: Message, state: FSMContext):
+    async def draw_button(message: Message, state: FSMContext):
         await state.clear()
         user_id = message.from_user.id
 
@@ -54,6 +54,8 @@ def register_draw_handlers(router: Router):
 
         game_data['draw'] = draw_results
         game_data['status'] = 'completed'
+
+        db.update_game_draw(game_code, draw_results)
 
         await message.answer("✅ Жеребьёвка успешно проведена!")
 

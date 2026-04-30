@@ -3,11 +3,11 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import app.keyboards as kb
 from .core import games, user_game, get_user_name
+import database as db
 
-
-def register_manage_handlers(router: Router):
+def manage(router: Router):
     @router.message(F.text == "Назад")
-    async def back_to_game_menu(message: Message, state: FSMContext):
+    async def back_game_menu(message: Message, state: FSMContext):
         await state.clear()
         user_id = message.from_user.id
         from main import bot
@@ -52,7 +52,7 @@ def register_manage_handlers(router: Router):
         )
 
     @router.message(F.text == "Удалить игру")
-    async def delete_game_confirm(message: Message):
+    async def delete_game(message: Message):
         user_id = message.from_user.id
 
         if user_id not in user_game:
@@ -108,6 +108,8 @@ def register_manage_handlers(router: Router):
                 del user_game[player_id]
 
         del games[game_code]
+
+        db.delete_game(game_code)
 
         await callback.message.edit_text(
             text=f"🗑️ Игра {game_code} успешно удалена!\n\n"

@@ -7,6 +7,8 @@ import random
 
 import app.keyboards as kb
 from app.game.gamehandlers import game_router, games, user_game
+import database as db
+
 
 router = Router()
 
@@ -64,6 +66,8 @@ async def set_budget(message: Message, state: FSMContext):
     }
     user_game[message.from_user.id] = game_code
 
+    db.create_game(game_code, message.from_user.id, budget)
+
     await state.clear()
 
     await message.answer(
@@ -117,6 +121,8 @@ async def join_code(message: Message, state: FSMContext):
         games[code]['players'].append(message.from_user.id)
         user_game[message.from_user.id] = code
 
+        db.add_player(code, message.from_user.id)
+
         await message.answer(
             text=f"✅ Вы присоединились к игре!\nКод игры: {code}",
             reply_markup=kb.game_menu
@@ -133,3 +139,4 @@ async def back_to_main(message: Message, state: FSMContext):
         text='Вы вернулись в главное меню',
         reply_markup=kb.main
     )
+
