@@ -1,0 +1,26 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    env_file:
+      - .env
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: adminchoi
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_INITDB_DATABASE: 88888
+
+    volumes:
+      - .docker/mongo/mongodump:/mongodump
+      - .docker/mongo/data:/data/db
+    ports:
+      - "8888:8888"
+    command: mongod --quiet --logpath /dev/null --logappend
+    logging:
+      driver: "none"
+    env_file:
+      - .env
